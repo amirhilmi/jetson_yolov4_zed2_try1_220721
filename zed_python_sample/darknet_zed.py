@@ -258,7 +258,8 @@ def detect(net, meta, image, thresh=.5, hier_thresh=.5, nms=.45, debug=False):
                     name_tag = meta.names[i]
                 else:
                     name_tag = altNames[i]
-                res.append((name_tag, dets[j].prob[i], (b.x, b.y, b.w, b.h), i))
+                res.append(
+                    (name_tag, dets[j].prob[i], (b.x, b.y, b.w, b.h), i))
     res = sorted(res, key=lambda x: -x[1])
     free_detections(dets, num)
     return res
@@ -332,7 +333,7 @@ def generate_color(meta_path):
 def main(argv):
 
     thresh = 0.25
-    darknet_path="../libdarknet/"
+    darknet_path = "../libdarknet/"
     config_path = darknet_path + "cfg/yolov3-tiny.cfg"
     weight_path = "yolov3-tiny.weights"
     meta_path = "coco.data"
@@ -435,7 +436,7 @@ def main(argv):
 
     key = ''
     while key != 113:  # for 'q' key
-        start_time = time.time() # start time of the loop
+        start_time = time.time()  # start time of the loop
         err = cam.grab(runtime)
         if err == sl.ERROR_CODE.SUCCESS:
             cam.retrieve_image(mat, sl.VIEW.LEFT)
@@ -448,7 +449,8 @@ def main(argv):
             # Do the detection
             detections = detect(netMain, metaMain, image, thresh)
 
-            log.info(chr(27) + "[2J"+"**** " + str(len(detections)) + " Results ****")
+            log.info(chr(27) + "[2J"+"**** " +
+                     str(len(detections)) + " Results ****")
             for detection in detections:
                 label = detection[0]
                 confidence = detection[1]
@@ -464,15 +466,31 @@ def main(argv):
                 thickness = 1
                 x, y, z = get_object_depth(depth, bounds)
                 distance = math.sqrt(x * x + y * y + z * z)
+                # distance = "{:.2f}".format(distance)
+
+                dst_horizontal = math.sqrt(x * x + y * y)
+                # dst_horizontal = "{:.2f}".format(dst_horizontal)
+
+                theta_ts = math.asin(dst_horizontal/distance)
+                theta_ts = "{:.2f}".format(theta_ts)
+
                 distance = "{:.2f}".format(distance)
+                dst_horizontal = "{:.2f}".format(dst_horizontal)
+
                 cv2.rectangle(image, (x_coord - thickness, y_coord - thickness),
-                              (x_coord + x_extent + thickness, y_coord + (18 + thickness*4)),
+                              (x_coord + x_extent + thickness,
+                               y_coord + (18 + thickness*4)),
                               color_array[detection[3]], -1)
-                cv2.putText(image, label + " " +  (str(distance) + " m"),
-                            (x_coord + (thickness * 4), y_coord + (10 + thickness * 4)),
+                # cv2.putText(image, label + " " + (str(distance) + " m") + " " + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
+
+                cv2.putText(image, label + " " + (str(distance) + " m,") + " " + "dst_horizontal= " + (str(dst_horizontal)) + " " + " " + "theta_ts= " + (str(theta_ts)) + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
+
+                            (x_coord + (thickness * 4),
+                             y_coord + (10 + thickness * 4)),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
                 cv2.rectangle(image, (x_coord - thickness, y_coord - thickness),
-                              (x_coord + x_extent + thickness, y_coord + y_extent + thickness),
+                              (x_coord + x_extent + thickness,
+                               y_coord + y_extent + thickness),
                               color_array[detection[3]], int(thickness*2))
 
             cv2.imshow("ZED", image)
