@@ -1,4 +1,4 @@
-FROM stereolabs/zed:ubuntu1604-cuda9.0-zed2.8-gl
+FROM stereolabs/zed:3.5-devel-jetson-jp4.5
 
 ENV CUDNN_VERSION 7.4.1.5
 

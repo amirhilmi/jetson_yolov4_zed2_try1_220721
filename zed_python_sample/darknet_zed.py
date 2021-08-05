@@ -83,6 +83,8 @@ class METADATA(Structure):
 
 #lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
 #lib = CDLL("darknet.so", RTLD_GLOBAL)
+lib = CDLL("/home/manzat/code/usim_code/localization/0_wip/jetson_yolov4_zed2_try1_220721/libdarknet/libdarknet.so", RTLD_GLOBAL)
+
 hasGPU = True
 if os.name == "nt":
     cwd = os.path.dirname(__file__)
