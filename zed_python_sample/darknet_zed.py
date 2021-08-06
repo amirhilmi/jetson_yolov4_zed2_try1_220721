@@ -373,6 +373,7 @@ def main(argv):
         input_type.set_from_camera_id(zed_id)
 
     init = sl.InitParameters(input_t=input_type)
+    # init.depth_mode = sl.DEPTH_MODE.ULTRA
     init.coordinate_units = sl.UNIT.METER
 
     cam = sl.Camera()
@@ -483,7 +484,7 @@ def main(argv):
                               color_array[detection[3]], -1)
                 # cv2.putText(image, label + " " + (str(distance) + " m") + " " + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
 
-                cv2.putText(image, label + " " + (str(distance) + " m,") + " " + "dst_horizontal= " + (str(dst_horizontal)) + " " + " " + "theta_ts= " + (str(theta_ts)) + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
+                cv2.putText(image, label + " " + (str(distance) + " m,") + " " + "dst_horizontal= " + (str(dst_horizontal)) + " " + "theta_ts= " + (str(theta_ts)) + " "+ "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
 
                             (x_coord + (thickness * 4),
                              y_coord + (10 + thickness * 4)),
