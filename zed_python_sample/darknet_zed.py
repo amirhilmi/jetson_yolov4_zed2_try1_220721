@@ -11,6 +11,8 @@ Windows Python 2.7 version: https://github.com/AlexeyAB/darknet/blob/fc496d52bf2
 @date: 20180911
 """
 # pylint: disable=R, W0401, W0614, W0703
+
+import json
 import os
 import sys
 import time
@@ -24,6 +26,8 @@ from ctypes import *
 import numpy as np
 import cv2
 import pyzed.sl as sl
+
+from datetime import datetime
 
 # Get the top-level logger object
 log = logging.getLogger(__name__)
@@ -452,7 +456,10 @@ def main(argv):
 
             log.info(chr(27) + "[2J"+"**** " +
                      str(len(detections)) + " Results ****")
+
+            count_screenshot_detected = 0
             for detection in detections:
+
                 label = detection[0]
                 confidence = detection[1]
                 pstring = label+": "+str(np.rint(100 * confidence))+"%"
@@ -484,7 +491,7 @@ def main(argv):
                               color_array[detection[3]], -1)
                 # cv2.putText(image, label + " " + (str(distance) + " m") + " " + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
 
-                cv2.putText(image, label + " " + (str(distance) + " m,") + " " + "dst_horizontal= " + (str(dst_horizontal)) + " " + "theta_ts= " + (str(theta_ts)) + " "+ "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
+                cv2.putText(image, label + " " + (str(distance) + " m,") + " " + "dst_horizontal= " + (str(dst_horizontal)) + " " + "theta_ts= " + (str(theta_ts)) + " " + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
 
                             (x_coord + (thickness * 4),
                              y_coord + (10 + thickness * 4)),
@@ -494,9 +501,36 @@ def main(argv):
                                y_coord + y_extent + thickness),
                               color_array[detection[3]], int(thickness*2))
 
+                # Logs
+
+                detection_localization_single_data = {}
+
+                detection_localization_single_data = {
+                    "time": str(datetime.utcnow()),
+                    "label": str(label),
+                    "x": str(x),
+                    "y": str(y),
+                    "z": str(z),
+                }
+
+                print(json.dumps(detection_localization_single_data))
+
+                # TODO : Enable to append multi line logs to json files / use db.
+                with open('detection_localization_single_data.json', 'a') as outfile:
+                    outfile.write(json.dumps(
+                        detection_localization_single_data))
+                    outfile.close()
+                
+                
+                cv2.imwrite("frame%d.jpg" % count_screenshot_detected, image)
+                count_screenshot_detected = count_screenshot_detected+1
+
+                # End Logs
+
             cv2.imshow("ZED", image)
             key = cv2.waitKey(5)
             log.info("FPS: {}".format(1.0 / (time.time() - start_time)))
+
         else:
             key = cv2.waitKey(5)
     cv2.destroyAllWindows()
