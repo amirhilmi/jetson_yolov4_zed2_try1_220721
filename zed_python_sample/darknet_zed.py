@@ -27,6 +27,8 @@ import numpy as np
 import cv2
 import pyzed.sl as sl
 
+import utm
+
 from datetime import datetime
 
 # Get the top-level logger object
@@ -457,7 +459,7 @@ def main(argv):
             log.info(chr(27) + "[2J"+"**** " +
                      str(len(detections)) + " Results ****")
 
-            count_screenshot_detected = 0
+            count_target_detected = 0
             for detection in detections:
 
                 label = detection[0]
@@ -501,29 +503,119 @@ def main(argv):
                                y_coord + y_extent + thickness),
                               color_array[detection[3]], int(thickness*2))
 
-                # Logs
+                # PERFORM STEREO PHOTOGRAMMETRY CALCULATION
+
+                # Get current/stored location from pixhawk
+                f = open(
+                    '/home/manzat/code/usim_code/drone/0_wip/mavlink_telemetry_tst_210828/pixhawk_dronekit_flight_monitor_data.json',)
+
+                current_flight = json.load(f)
+
+                current_flight_time = current_flight["time"]
+                current_flight_alt = current_flight["altitude"]
+                current_flight_latitude = current_flight["latitude"]
+                current_flight_longitude = current_flight["longitude"]
+                current_flight_easting = current_flight["easting"]
+                current_flight_northing = current_flight["northing"]
+                current_flight_zone_number = current_flight["zone_number"]
+                current_flight_zone_letter = current_flight["zone_letter"]
+                current_flight_heading = current_flight["heading"]
+
+                f.close()
+
+                # Get target postioning data from stereo camera (system)
+
+                target_fromSystem_position_x = float(x)
+                target_fromSystem_position_y = float(y)
+                target_fromSystem_position_z = float(z)
+
+                dst_horizontal = math.sqrt(x * x + y * y)
+                # dst_horizontal = "{:.2f}".format(dst_horizontal)
+
+                # Compute the angle of the target positioned relative to system, theta(system - target)
+                # theta naming convenction, the first letter in theta represent the core, the second is object to be measured angle to
+
+                theta_st_2d = math.atan(
+                    target_fromSystem_position_y / target_fromSystem_position_x)
+                # theta_st_2d = "{:.2f}".format(theta_st_2d)
+
+                # Compute the angle of the target positioned relative to pole, theta(pole - target)
+
+                theta_pt = float(current_flight_heading) + float(theta_st_2d)
+                # theta_pt = "{:.2f}".format(theta_pt)
+
+                # Compute target's transverse computation (departure and lattitude(transverse))
+
+                target_fromPole_position_departure = (dst_horizontal *
+                                                      math.sin(float(theta_pt)))
+                target_fromPole_position_latitudeTransverse = (dst_horizontal *
+                                                               math.cos(float(theta_pt)))
+
+                # Perform target geolocation computation
+
+                target_geolocation_easting = (
+                    float(current_flight_easting) + target_fromPole_position_departure)
+                target_geolocation_northing = (
+                    float(current_flight_northing) + target_fromPole_position_latitudeTransverse)
+
+                # Convert target geolocation from UTM to WGS '84
+
+                # Convert To UTM
+
+                target_geolocation_latlon = utm.to_latlon(
+                    target_geolocation_easting, target_geolocation_northing, current_flight_zone_number, current_flight_zone_letter)
+
+                # END - PERFORM STEREO PHOTOGRAMMETRY CALCULATION
+
+                # LOGS
 
                 detection_localization_single_data = {}
 
                 detection_localization_single_data = {
+                    "label": str(label),
+
                     "time": str(datetime.utcnow()),
+                    "time_flight_data": current_flight_time,
+
+                    "current_flight_alt": str(current_flight_alt),
+                    "current_flight_latitude": str(current_flight_latitude),
+                    "current_flight_longitude": str(current_flight_longitude),
+                    "current_flight_easting": str(current_flight_easting),
+                    "current_flight_northing": str(current_flight_northing),
+                    "current_flight_heading": str(current_flight_heading),
+
                     "label": str(label),
                     "x": str(x),
                     "y": str(y),
                     "z": str(z),
+                    "dst_horizontal": str(dst_horizontal),
+                    "theta_st_2d": str(theta_st_2d),
+
+                    "target_fromPole_position_departure": str(target_fromPole_position_departure),
+                    "target_fromPole_position_latitudeTransverse": str(target_fromPole_position_latitudeTransverse),
+
+                    "target_geolocation_easting": str(target_geolocation_easting),
+                    "target_geolocation_northing": str(target_geolocation_northing),
+                    "target_geolocation_zone_number": str(current_flight_zone_number),
+                    "target_geolocation_zone_letter": str(current_flight_zone_letter),
+                    "target_geolocation_latlon": str(target_geolocation_latlon),
                 }
 
                 print(json.dumps(detection_localization_single_data))
 
                 # TODO : Enable to append multi line logs to json files / use db.
-                with open('detection_localization_single_data.json', 'a') as outfile:
+
+                timestr = time.strftime("%Y%m%d-%H%M%S")
+
+                with open('photogrammetry_logs/acs.json', 'w') as outfile:
                     outfile.write(json.dumps(
                         detection_localization_single_data))
                     outfile.close()
-                
-                
-                cv2.imwrite("frame%d.jpg" % count_screenshot_detected, image)
-                count_screenshot_detected = count_screenshot_detected+1
+
+                # Logs - save screenshot
+                cv2.imwrite("photogrammetry_logs/frame%d.jpg" %
+                            count_target_detected, image)
+                count_target_detected = count_target_detected + 1
 
                 # End Logs
 
