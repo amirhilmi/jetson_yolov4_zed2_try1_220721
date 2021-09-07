@@ -475,6 +475,8 @@ def main(argv):
                 #boundingBox = [[x_coord, y_coord], [x_coord, y_coord + y_extent], [x_coord + x_extent, y_coord + y_extent], [x_coord + x_extent, y_coord]]
                 thickness = 1
                 x, y, z = get_object_depth(depth, bounds)
+                # FIXME : Y in zed camera return inverse sign value, i.e positive becomes negative
+                y = y * -1
                 distance = math.sqrt(x * x + y * y + z * z)
                 # distance = "{:.2f}".format(distance)
 
@@ -493,7 +495,7 @@ def main(argv):
                               color_array[detection[3]], -1)
                 # cv2.putText(image, label + " " + (str(distance) + " m") + " " + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
 
-                cv2.putText(image, label + " " + (str(distance) + " m,") + " " + "dst_horizontal= " + (str(dst_horizontal)) + " " + "theta_ts= " + (str(theta_ts)) + " " + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
+                cv2.putText(image, label + " "  + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
 
                             (x_coord + (thickness * 4),
                              y_coord + (10 + thickness * 4)),
