@@ -23,6 +23,7 @@ import math
 import statistics
 import getopt
 from ctypes import *
+from cv2 import normalize
 import numpy as np
 import cv2
 import pyzed.sl as sl
@@ -483,7 +484,7 @@ def main(argv):
                 dst_horizontal = math.sqrt(x * x + y * y)
                 # dst_horizontal = "{:.2f}".format(dst_horizontal)
 
-                theta_ts = math.asin(dst_horizontal/distance)
+                theta_ts = math.asin(math.radians(dst_horizontal/distance))
                 theta_ts = "{:.2f}".format(theta_ts)
 
                 distance = "{:.2f}".format(distance)
@@ -495,7 +496,7 @@ def main(argv):
                               color_array[detection[3]], -1)
                 # cv2.putText(image, label + " " + (str(distance) + " m") + " " + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
 
-                cv2.putText(image, label + " "  + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
+                cv2.putText(image, label + " " + "x= " + (str(round(x, 2))) + " " + "y= "+(str(round(y, 2))) + " " + "z= " + (str(round(z, 2))),
 
                             (x_coord + (thickness * 4),
                              y_coord + (10 + thickness * 4)),
@@ -532,26 +533,42 @@ def main(argv):
                 target_fromSystem_position_z = float(z)
 
                 dst_horizontal = math.sqrt(x * x + y * y)
-                # dst_horizontal = "{:.2f}".format(dst_horizontal)
 
                 # Compute the angle of the target positioned relative to system, theta(system - target)
                 # theta naming convenction, the first letter in theta represent the core, the second is object to be measured angle to
 
-                theta_st_2d = math.atan(
-                    target_fromSystem_position_y / target_fromSystem_position_x)
-                # theta_st_2d = "{:.2f}".format(theta_st_2d)
+                theta_st_2d = math.atan(math.radians(
+                    target_fromSystem_position_x / target_fromSystem_position_y))
+
+                theta_st_2d_before_normalization_180 = theta_st_2d  # Logs value before computation
+                theta_st_2d = abs(theta_st_2d)  # make theta always positive
+
+                if target_fromSystem_position_x >= 0 and target_fromSystem_position_y >= 0:  # determine exact bearing
+                    theta_st_2d = theta_st_2d
+
+                elif target_fromSystem_position_x >= 0 and target_fromSystem_position_y < 0:
+                    theta_st_2d = 180 - theta_st_2d
+
+                elif target_fromSystem_position_x < 0 and target_fromSystem_position_y < 0:
+                    theta_st_2d = theta_st_2d + 180
+
+                elif target_fromSystem_position_x < 0 and target_fromSystem_position_y >= 0:
+                    theta_st_2d = 360 - theta_st_2d
+
+                else:
+                    theta_st_2d = theta_st_2d
 
                 # Compute the angle of the target positioned relative to pole, theta(pole - target)
 
-                theta_pt = float(current_flight_heading) + float(theta_st_2d)
-                # theta_pt = "{:.2f}".format(theta_pt)
+                theta_pt = current_flight_heading + theta_st_2d
+                theta_pt = theta_pt % 360  # normalize
 
                 # Compute target's transverse computation (departure and lattitude(transverse))
 
                 target_fromPole_position_departure = (dst_horizontal *
-                                                      math.sin(float(theta_pt)))
+                                                      math.sin(math.radians(theta_pt)))
                 target_fromPole_position_latitudeTransverse = (dst_horizontal *
-                                                               math.cos(float(theta_pt)))
+                                                               math.cos(math.radians(theta_pt)))
 
                 # Perform target geolocation computation
 
@@ -562,10 +579,12 @@ def main(argv):
 
                 # Convert target geolocation from UTM to WGS '84
 
-                # Convert To UTM
-
                 target_geolocation_latlon = utm.to_latlon(
                     target_geolocation_easting, target_geolocation_northing, current_flight_zone_number, current_flight_zone_letter)
+
+                # Compute target altitude
+
+                target_geolocation_alt = current_flight_alt - target_fromSystem_position_z
 
                 # END - PERFORM STEREO PHOTOGRAMMETRY CALCULATION
 
@@ -591,7 +610,9 @@ def main(argv):
                     "y": str(y),
                     "z": str(z),
                     "dst_horizontal": str(dst_horizontal),
+                    "theta_st_2d_before_normalization_180": str(theta_st_2d_before_normalization_180),
                     "theta_st_2d": str(theta_st_2d),
+                    "theta_pt": str(theta_pt),
 
                     "target_fromPole_position_departure": str(target_fromPole_position_departure),
                     "target_fromPole_position_latitudeTransverse": str(target_fromPole_position_latitudeTransverse),
@@ -601,6 +622,7 @@ def main(argv):
                     "target_geolocation_zone_number": str(current_flight_zone_number),
                     "target_geolocation_zone_letter": str(current_flight_zone_letter),
                     "target_geolocation_latlon": str(target_geolocation_latlon),
+                    "target_geolocation_alt": str(target_geolocation_alt),
                 }
 
                 print(json.dumps(detection_localization_single_data))
