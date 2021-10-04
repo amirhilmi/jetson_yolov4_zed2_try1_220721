@@ -532,12 +532,13 @@ def main(argv):
                 target_fromSystem_position_y = float(y)
                 target_fromSystem_position_z = float(z)
 
-                dst_horizontal = math.sqrt(x * x + y * y)
+                dst_horizontal = math.sqrt(target_fromSystem_position_x * target_fromSystem_position_x +
+                                           target_fromSystem_position_y * target_fromSystem_position_y)
 
-                # Compute the angle of the target positioned relative to system, theta(system - target)
+                # Compute the angle of the target positioned relative to system, theta(system - target) *CAREFUL with rad,degrees
                 # theta naming convenction, the first letter in theta represent the core, the second is object to be measured angle to
 
-                theta_st_2d = math.atan(math.radians(
+                theta_st_2d = math.degrees(math.atan(
                     target_fromSystem_position_x / target_fromSystem_position_y))
 
                 theta_st_2d_before_normalization_180 = theta_st_2d  # Logs value before computation
